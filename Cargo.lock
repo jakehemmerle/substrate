@@ -7529,14 +7529,9 @@ dependencies = [
  "ansi_term 0.12.1",
  "futures 0.3.13",
  "log",
- "parity-util-mem",
  "sc-client-api",
- "sc-network",
  "sp-blockchain",
  "sp-runtime",
- "sp-transaction-pool",
- "sp-utils",
- "wasm-timer",
 ]
 
 [[package]]
@@ -9436,7 +9431,6 @@ dependencies = [
  "log",
  "rand 0.7.3",
  "sc-chain-spec",
- "sc-informant",
  "sc-network",
  "sc-service",
  "sc-tracing",
@@ -9759,7 +9753,6 @@ dependencies = [
  "sc-client-api",
  "sc-consensus-manual-seal",
  "sc-executor",
- "sc-informant",
  "sc-network",
  "sc-rpc",
  "sc-rpc-server",

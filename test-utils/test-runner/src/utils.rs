@@ -23,7 +23,6 @@ use log::LevelFilter;
 use sc_service::{BasePath, ChainSpec, Configuration, TaskExecutor, DatabaseConfig, KeepBlocks, TransactionStorageMode};
 use sp_keyring::sr25519::Keyring::Alice;
 use sc_network::{multiaddr, config::{NetworkConfiguration, TransportConfig, Role}};
-use sc_informant::OutputFormat;
 use sc_service::config::KeystoreConfig;
 use sc_executor::WasmExecutionMethod;
 use sc_client_api::execution_extensions::ExecutionStrategies;
@@ -85,7 +84,6 @@ pub fn default_config(task_executor: TaskExecutor, mut chain_spec: Box<dyn Chain
 		Default::default(),
 		None,
 	);
-	let informant_output_format = OutputFormat { enable_color: false };
 	network_config.allow_non_globals_in_dht = true;
 
 	network_config
@@ -140,7 +138,6 @@ pub fn default_config(task_executor: TaskExecutor, mut chain_spec: Box<dyn Chain
 		announce_block: true,
 		base_path: Some(base_path),
 		wasm_runtime_overrides: None,
-		informant_output_format,
 		disable_log_reloading: false,
 		keystore_remote: None,
 		keep_blocks: KeepBlocks::All,

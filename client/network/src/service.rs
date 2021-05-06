@@ -28,7 +28,7 @@
 //! which is then processed by [`NetworkWorker::poll`].
 
 use crate::{
-	ExHashT, NetworkStateInfo, NetworkStatus,
+	ExHashT, NetworkStateInfo,
 	behaviour::{self, Behaviour, BehaviourOut},
 	config::{parse_str_addr, Params, TransportConfig},
 	DhtEvent,
@@ -438,19 +438,6 @@ impl<B: BlockT + 'static, H: ExHashT> NetworkWorker<B, H> {
 			metrics,
 			boot_node_ids,
 		})
-	}
-
-	/// High-level network status information.
-	pub fn status(&self) -> NetworkStatus<B> {
-		NetworkStatus {
-			sync_state: self.sync_state(),
-			best_seen_block: self.best_seen_block(),
-			num_sync_peers: self.num_sync_peers(),
-			num_connected_peers: self.num_connected_peers(),
-			num_active_peers: self.num_active_peers(),
-			total_bytes_inbound: self.total_bytes_inbound(),
-			total_bytes_outbound: self.total_bytes_outbound(),
-		}
 	}
 
 	/// Returns the total number of bytes received so far.

@@ -23,7 +23,6 @@ wasm-bindgen = "0.2.73"
 wasm-bindgen-futures = "0.4.18"
 kvdb-web = "0.9.0"
 sp-database = { version = "3.0.0", path = "../../primitives/database" }
-sc-informant = { version = "0.9.0", path = "../../client/informant" }
 sc-service = { version = "0.9.0", path = "../../client/service", default-features = false }
 sc-network = { path = "../../client/network", version = "0.9.0"}
 sc-chain-spec = { path = "../../client/chain-spec", version = "3.0.0"}
