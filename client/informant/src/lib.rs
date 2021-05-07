@@ -34,7 +34,7 @@ use std::{fmt::Display, sync::Arc, time::Duration, collections::VecDeque};
 mod display;
 
 /// Creates a stream that returns a new value every `duration`.
-pub fn interval(duration: Duration) -> impl Stream<Item = ()> + Unpin {
+fn interval(duration: Duration) -> impl Stream<Item = ()> + Unpin {
 	futures::stream::unfold((), move |_| Delay::new(duration).map(|_| Some(((), ())))).map(drop)
 }
 
