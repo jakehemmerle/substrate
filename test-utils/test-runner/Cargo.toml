@@ -9,6 +9,7 @@ publish = false
 # client deps
 sc-executor = { version = "0.9.0", path = "../../client/executor" }
 sc-service = { version = "0.9.0", path = "../../client/service" }
+sc-informant = { version = "0.9.0", path = "../../client/informant" }
 sc-network = { version = "0.9.0", path = "../../client/network" }
 sc-cli = { version = "0.9.0", path = "../../client/cli" }
 sc-basic-authorship = { version = "0.9.0", path = "../../client/basic-authorship" }

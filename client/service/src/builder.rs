@@ -658,7 +658,12 @@ pub fn spawn_tasks<TBl, TBackend, TExPool, TRpc, TCl>(
 	).into()));
 
 	// Spawn informant task
-	spawn_handle.spawn("informant", sc_informant::build(client.clone()));
+	spawn_handle.spawn("informant", sc_informant::build(
+		client.clone(),
+		network.clone(),
+		transaction_pool.clone(),
+		config.informant_output_format,
+	));
 
 	task_manager.keep_alive((config.base_path, rpc, rpc_handlers.clone()));
 

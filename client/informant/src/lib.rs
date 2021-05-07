@@ -20,11 +20,23 @@
 
 use ansi_term::Colour;
 use futures::prelude::*;
-use log::{info, warn};
+use futures_timer::Delay;
+use log::{info, trace, warn};
+use parity_util_mem::MallocSizeOf;
 use sc_client_api::{BlockchainEvents, UsageProvider};
+use sc_network::NetworkService;
 use sp_blockchain::HeaderMetadata;
 use sp_runtime::traits::{Block as BlockT, Header};
-use std::{fmt::Display, sync::Arc, collections::VecDeque};
+use sp_transaction_pool::TransactionPool;
+use sp_utils::mpsc::tracing_unbounded;
+use std::{fmt::Display, sync::Arc, time::Duration, collections::VecDeque};
+
+mod display;
+
+/// Creates a stream that returns a new value every `duration`.
+pub fn interval(duration: Duration) -> impl Stream<Item = ()> + Unpin {
+	futures::stream::unfold((), move |_| Delay::new(duration).map(|_| Some(((), ())))).map(drop)
+}
 
 /// The format to print telemetry output in.
 #[derive(Clone, Debug)]
@@ -43,15 +55,71 @@ impl Default for OutputFormat {
 	}
 }
 
+/// Marker trait for a type that implements `TransactionPool` and `MallocSizeOf` on `not(target_os = "unknown")`.
+#[cfg(target_os = "unknown")]
+pub trait TransactionPoolAndMaybeMallogSizeOf: TransactionPool {}
+
+/// Marker trait for a type that implements `TransactionPool` and `MallocSizeOf` on `not(target_os = "unknown")`.
+#[cfg(not(target_os = "unknown"))]
+pub trait TransactionPoolAndMaybeMallogSizeOf: TransactionPool + MallocSizeOf {}
+
+#[cfg(target_os = "unknown")]
+impl<T: TransactionPool> TransactionPoolAndMaybeMallogSizeOf for T {}
+
+#[cfg(not(target_os = "unknown"))]
+impl<T: TransactionPool + MallocSizeOf> TransactionPoolAndMaybeMallogSizeOf for T {}
+
 /// Builds the informant and returns a `Future` that drives the informant.
-pub fn build<B: BlockT, C>(
+pub async fn build<B: BlockT, C>(
 	client: Arc<C>,
-) -> impl futures::Future<Output = ()>
+	network: Arc<NetworkService<B, <B as BlockT>::Hash>>,
+	pool: Arc<impl TransactionPoolAndMaybeMallogSizeOf>,
+	format: OutputFormat,
+)
 where
 	C: UsageProvider<B> + HeaderMetadata<B> + BlockchainEvents<B>,
 	<C as HeaderMetadata<B>>::Error: Display,
 {
-	display_block_import(client)
+	let mut display = display::InformantDisplay::new(format.clone());
+
+	let client_1 = client.clone();
+	let (network_status_sink, network_status_stream) = tracing_unbounded("mpsc_network_status");
+
+	let display_notifications = network_status_stream
+		.for_each(move |net_status| {
+			let info = client_1.usage_info();
+			if let Some(ref usage) = info.usage {
+				trace!(target: "usage", "Usage statistics: {}", usage);
+			} else {
+				trace!(
+					target: "usage",
+					"Usage statistics not displayed as backend does not provide it",
+				)
+			}
+			#[cfg(not(target_os = "unknown"))]
+			trace!(
+				target: "usage",
+				"Subsystems memory [txpool: {} kB]",
+				parity_util_mem::malloc_size(&*pool) / 1024,
+			);
+			display.display(&info, net_status);
+			future::ready(())
+		});
+
+	let net_status_provider = interval(Duration::from_millis(5000)).for_each(|()| async move {
+		()
+		// network_status_sink.send(network.status()); FIXME
+	});
+
+	let mut informant = future::join(
+		display_notifications,
+		display_block_import(client),
+	).map(|_| ());
+
+	futures::select! {
+		() = informant => (),
+		() = net_status_provider.fuse() => (),
+	}
 }
 
 fn display_block_import<B: BlockT, C>(client: Arc<C>) -> impl Future<Output = ()>
