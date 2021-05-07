@@ -107,9 +107,9 @@ where
 		});
 
 	let net_status_provider = interval(Duration::from_millis(5000)).for_each(|()| async {
-		let mut network_status_sink = network_status_sink.clone();
 		let status = network.status().await;
 		if let Ok(status) = status {
+			let mut network_status_sink = network_status_sink.clone();
 			let _ = network_status_sink.send(status);
 		}
 	});
