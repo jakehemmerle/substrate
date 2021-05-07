@@ -905,6 +905,26 @@ impl<B: BlockT + 'static, H: ExHashT> NetworkService<B, H> {
 		}
 	}
 
+	/// Get network state.
+	///
+	/// **Note**: Use this only for debugging. This API is unstable. There are warnings literally
+	/// everywhere about this. Please don't use this function to retrieve actual information.
+	pub async fn network_state(&self) -> Result<NetworkState, RequestFailure> {
+		let (tx, rx) = oneshot::channel();
+
+		let _ = self.to_worker.unbounded_send(ServiceToWorkerMsg::NetworkState {
+			pending_response: tx,
+		});
+
+		match rx.await {
+			Ok(v) => v,
+			// The channel can only be closed if the network worker no longer exists. If the
+			// network worker no longer exists, then all connections to `target` are necessarily
+			// closed, and we legitimately report this situation as a "ConnectionClosed".
+			Err(_) => Err(RequestFailure::Network(OutboundFailure::ConnectionClosed)),
+		}
+	}
+
 	/// You may call this when new transactons are imported by the transaction pool.
 	///
 	/// All transactions will be fetched from the `TransactionPool` that was passed at
@@ -1327,6 +1347,9 @@ enum ServiceToWorkerMsg<B: BlockT, H: ExHashT> {
 	NetworkStatus {
 		pending_response: oneshot::Sender<Result<NetworkStatus<B>, RequestFailure>>,
 	},
+	NetworkState {
+		pending_response: oneshot::Sender<Result<NetworkState, RequestFailure>>,
+	},
 	DisconnectPeer(PeerId, Cow<'static, str>),
 	NewBestBlockImported(B::Hash, NumberFor<B>),
 }
@@ -1456,6 +1479,9 @@ impl<B: BlockT + 'static, H: ExHashT> Future for NetworkWorker<B, H> {
 				},
 				ServiceToWorkerMsg::NetworkStatus { pending_response } => {
 					let _ = pending_response.send(Ok(this.status()));
+				},
+				ServiceToWorkerMsg::NetworkState { pending_response } => {
+					let _ = pending_response.send(Ok(this.network_state()));
 				},
 				ServiceToWorkerMsg::DisconnectPeer(who, protocol_name) =>
 					this.network_service.behaviour_mut().user_protocol_mut().disconnect_peer(&who, &protocol_name),
