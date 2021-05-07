@@ -108,10 +108,10 @@ where
 			future::ready(())
 		});
 
-	future::join(
-		display_notifications,
-		display_block_import(client),
-	).map(|_| ()).await
+	futures::select! {
+		() = display_notifications.fuse() => (),
+		() = display_block_import(client).fuse() => (),
+	};
 }
 
 fn display_block_import<B: BlockT, C>(client: Arc<C>) -> impl Future<Output = ()>

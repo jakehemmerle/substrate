@@ -120,9 +120,9 @@ impl MetricsService {
 	pub fn new(telemetry: Option<TelemetryHandle>) -> Self {
 		MetricsService {
 			metrics: None,
-			last_update: Instant::now(),
 			last_total_bytes_inbound: 0,
 			last_total_bytes_outbound: 0,
+			last_update: Instant::now(),
 			telemetry,
 		}
 	}
@@ -148,9 +148,9 @@ impl MetricsService {
 		)
 		.map(|p| MetricsService {
 			metrics: Some(p),
-			last_update: Instant::now(),
 			last_total_bytes_inbound: 0,
 			last_total_bytes_outbound: 0,
+			last_update: Instant::now(),
 			telemetry,
 		})
 	}
@@ -161,8 +161,8 @@ impl MetricsService {
 	pub async fn run<TBl, TExPool, TCl>(
 		mut self,
 		client: Arc<TCl>,
-		network: Arc<NetworkService<TBl, <TBl as Block>::Hash>>,
 		transactions: Arc<TExPool>,
+		network: Arc<NetworkService<TBl, <TBl as Block>::Hash>>,
 	) where
 		TBl: Block,
 		TCl: ProvideRuntimeApi<TBl> + UsageProvider<TBl>,

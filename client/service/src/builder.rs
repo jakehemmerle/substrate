@@ -635,8 +635,8 @@ pub fn spawn_tasks<TBl, TBackend, TExPool, TRpc, TCl>(
 	spawn_handle.spawn("telemetry-periodic-send",
 		metrics_service.run(
 			client.clone(),
+			transaction_pool.clone(),
 			network.clone(),
-			transaction_pool.clone()
 		)
 	);
 
