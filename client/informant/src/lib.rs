@@ -28,7 +28,6 @@ use sc_network::NetworkService;
 use sp_blockchain::HeaderMetadata;
 use sp_runtime::traits::{Block as BlockT, Header};
 use sp_transaction_pool::TransactionPool;
-use sp_utils::mpsc::tracing_unbounded;
 use std::{fmt::Display, sync::Arc, time::Duration, collections::VecDeque};
 
 mod display;
@@ -83,9 +82,12 @@ where
 	let mut display = display::InformantDisplay::new(format.clone());
 
 	let client_1 = client.clone();
-	let (network_status_sink, network_status_stream) = tracing_unbounded("mpsc_network_status");
 
-	let display_notifications = network_status_stream
+	let display_notifications = interval(Duration::from_millis(5000))
+		.filter_map(|_| async {
+			let status = network.status().await;
+			status.ok()
+		})
 		.for_each(move |net_status| {
 			let info = client_1.usage_info();
 			if let Some(ref usage) = info.usage {
@@ -106,23 +108,10 @@ where
 			future::ready(())
 		});
 
-	let net_status_provider = interval(Duration::from_millis(5000)).for_each(|()| async {
-		let status = network.status().await;
-		if let Ok(status) = status {
-			let mut network_status_sink = network_status_sink.clone();
-			let _ = network_status_sink.send(status);
-		}
-	});
-
-	let mut informant = future::join(
+	future::join(
 		display_notifications,
 		display_block_import(client),
-	).map(|_| ());
-
-	futures::select! {
-		() = informant => (),
-		() = net_status_provider.fuse() => (),
-	}
+	).map(|_| ()).await
 }
 
 fn display_block_import<B: BlockT, C>(client: Arc<C>) -> impl Future<Output = ()>
