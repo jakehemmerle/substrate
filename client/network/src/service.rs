@@ -889,7 +889,9 @@ impl<B: BlockT + 'static, H: ExHashT> NetworkService<B, H> {
 	}
 
 	/// High-level network status information.
-	pub async fn status(&self) -> Result<NetworkStatus<B>, RequestFailure> {
+	///
+	/// Returns an error if the `NetworkWorker` is no longer running.
+	pub async fn status(&self) -> Result<NetworkStatus<B>, ()> {
 		let (tx, rx) = oneshot::channel();
 
 		let _ = self.to_worker.unbounded_send(ServiceToWorkerMsg::NetworkStatus {
@@ -897,11 +899,9 @@ impl<B: BlockT + 'static, H: ExHashT> NetworkService<B, H> {
 		});
 
 		match rx.await {
-			Ok(v) => v,
-			// The channel can only be closed if the network worker no longer exists. If the
-			// network worker no longer exists, then all connections to `target` are necessarily
-			// closed, and we legitimately report this situation as a "ConnectionClosed".
-			Err(_) => Err(RequestFailure::Network(OutboundFailure::ConnectionClosed)),
+			Ok(v) => v.map_err(|_| ()),
+			// The channel can only be closed if the network worker no longer exists.
+			Err(_) => Err(()),
 		}
 	}
 
@@ -909,7 +909,9 @@ impl<B: BlockT + 'static, H: ExHashT> NetworkService<B, H> {
 	///
 	/// **Note**: Use this only for debugging. This API is unstable. There are warnings literally
 	/// everywhere about this. Please don't use this function to retrieve actual information.
-	pub async fn network_state(&self) -> Result<NetworkState, RequestFailure> {
+	///
+	/// Returns an error if the `NetworkWorker` is no longer running.
+	pub async fn network_state(&self) -> Result<NetworkState, ()> {
 		let (tx, rx) = oneshot::channel();
 
 		let _ = self.to_worker.unbounded_send(ServiceToWorkerMsg::NetworkState {
@@ -917,11 +919,9 @@ impl<B: BlockT + 'static, H: ExHashT> NetworkService<B, H> {
 		});
 
 		match rx.await {
-			Ok(v) => v,
-			// The channel can only be closed if the network worker no longer exists. If the
-			// network worker no longer exists, then all connections to `target` are necessarily
-			// closed, and we legitimately report this situation as a "ConnectionClosed".
-			Err(_) => Err(RequestFailure::Network(OutboundFailure::ConnectionClosed)),
+			Ok(v) => v.map_err(|_| ()),
+			// The channel can only be closed if the network worker no longer exists.
+			Err(_) => Err(()),
 		}
 	}
 
